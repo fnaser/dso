@@ -14,7 +14,11 @@ set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 
 # required libraries
 find_package(SuiteParse REQUIRED)
-find_package(Eigen3 REQUIRED)
+#find_package(Eigen3 3.3 REQUIRED NO_MODULE)
+set(
+        EIGEN3_INCLUDE_DIR
+        "/home/fnaser/Programs/eigen-eigen-b3f3d4950030/"
+)
 find_package(Boost COMPONENTS system thread) 
 
 # optional libraries
