@@ -92,6 +92,14 @@ Run on a dataset from [https://vision.in.tum.de/mono-dataset](https://vision.in.
 			preset=0 \
 			mode=0
 
+		./dso_dataset \
+			files=/home/fnaser/Pictures/dataset/sequence_28/images.zip \
+			calib=/home/fnaser/Pictures/dataset/sequence_28/camera.txt \
+			gamma=/home/fnaser/Pictures/dataset/sequence_28/pcalib.txt \
+			vignette=/home/fnaser/Pictures/dataset/sequence_28/vignette.png \
+			preset=0 \
+			mode=0
+
 See [https://github.com/JakobEngel/dso_ros](https://github.com/JakobEngel/dso_ros) for a minimal example on
 how the library can be used from another project. It should be straight forward to implement extentions for 
 other camera drivers, to use DSO interactively without ROS.
