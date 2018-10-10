@@ -27,8 +27,6 @@
 #include "util/MinimalImage.h"
 #include "IOWrapper/Output3DWrapper.h"
 
-
-
 #include "FullSystem/HessianBlocks.h"
 #include "util/FrameShell.h"
 
@@ -39,19 +37,18 @@ namespace dso
     class CalibHessian;
     class FrameShell;
 
-
     namespace IOWrap
     {
 
-        class SampleOutputWrapper : public Output3DWrapper
+        class RegistrationOutputWrapper : public Output3DWrapper
         {
         public:
-            inline SampleOutputWrapper()
+            inline RegistrationOutputWrapper()
             {
                 printf("OUT: Created SampleOutputWrapper\n");
             }
 
-            virtual ~SampleOutputWrapper()
+            virtual ~RegistrationOutputWrapper()
             {
                 printf("OUT: Destroyed SampleOutputWrapper\n");
             }
@@ -96,21 +93,21 @@ namespace dso
                 }
             }
 
-            virtual void publishCamPose(FrameShell* frame, CalibHessian* HCalib) override
-            {
-                printf("OUT: Current Frame %d (time %f, internal ID %d). CameraToWorld:\n",
-                       frame->incoming_id,
-                       frame->timestamp,
-                       frame->id);
-                std::cout << frame->camToWorld.matrix3x4() << "\n";
-
-                // M construction [fnaser]
-                //m00 m01 m02 m03
-                //m10 m11 m12 m13
-                //m20 m21 m22 m23
-                //last column is translation vector
-                //3x3 matrix with diagonal m00 m11 and m22 is a rotation matrix
-            }
+            virtual void publishCamPose(FrameShell* frame, CalibHessian* HCalib) override;
+//            {
+//                printf("OUT: Current Frame %d (time %f, internal ID %d). CameraToWorld:\n",
+//                       frame->incoming_id,
+//                       frame->timestamp,
+//                       frame->id);
+//                std::cout << frame->camToWorld.matrix3x4() << "\n";
+//
+//                // M construction [fnaser]
+//                //m00 m01 m02 m03
+//                //m10 m11 m12 m13
+//                //m20 m21 m22 m23
+//                //last column is translation vector
+//                //3x3 matrix with diagonal m00 m11 and m22 is a rotation matrix
+//            }
 
 
             virtual void pushLiveFrame(FrameHessian* image) override

@@ -48,7 +48,7 @@
 
 
 #include "IOWrapper/Pangolin/PangolinDSOViewer.h"
-#include "IOWrapper/OutputWrapper/SampleOutputWrapper.h"
+#include "IOWrapper/OutputWrapper/RegistrationOutputWrapper.h"
 
 
 std::string vignette = "";
@@ -410,7 +410,7 @@ int main( int argc, char** argv )
 
 
 	if(useSampleOutput)
-		fullSystem->outputWrapper.push_back(new IOWrap::SampleOutputWrapper());
+		fullSystem->outputWrapper.push_back(new IOWrap::RegistrationOutputWrapper());
 
 
 
