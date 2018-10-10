@@ -98,7 +98,9 @@ Run on a dataset from [https://vision.in.tum.de/mono-dataset](https://vision.in.
 			gamma=/home/fnaser/Pictures/dataset/sequence_28/pcalib.txt \
 			vignette=/home/fnaser/Pictures/dataset/sequence_28/vignette.png \
 			preset=0 \
-			mode=0
+			mode=0 \
+			quiet=1 \
+			sampleoutput=1
 
 See [https://github.com/JakobEngel/dso_ros](https://github.com/JakobEngel/dso_ros) for a minimal example on
 how the library can be used from another project. It should be straight forward to implement extentions for 

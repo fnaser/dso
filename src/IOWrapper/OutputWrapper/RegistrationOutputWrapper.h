@@ -43,10 +43,9 @@ namespace dso
         class RegistrationOutputWrapper : public Output3DWrapper
         {
         public:
-            inline RegistrationOutputWrapper()
-            {
-                printf("OUT: Created SampleOutputWrapper\n");
-            }
+            EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
+
+            RegistrationOutputWrapper();
 
             virtual ~RegistrationOutputWrapper()
             {
@@ -110,10 +109,10 @@ namespace dso
 //            }
 
 
-            virtual void pushLiveFrame(FrameHessian* image) override
-            {
-                // can be used to get the raw image / intensity pyramid.
-            }
+            virtual void pushLiveFrame(FrameHessian* image) override;
+//            {
+//                // can be used to get the raw image / intensity pyramid.
+//            }
 
             virtual void pushDepthImage(MinimalImageB3* image) override
             {
@@ -147,6 +146,11 @@ namespace dso
                     if(maxWrite==0) break;
                 }
             }
+
+        private:
+
+            std::vector<Eigen::Matrix<Sophus::SE3Group<double>::Scalar, 1, 3>> world_pts_;
+
         };
     }
 }
