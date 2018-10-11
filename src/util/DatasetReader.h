@@ -184,6 +184,14 @@ public:
 		return  undistort->getOriginalSize();
 	}
 
+	int getHeight() {
+		return this->height;
+	}
+
+	int getWidth() {
+		return this->width;
+	}
+
 	void getCalibMono(Eigen::Matrix3f &K, int &w, int &h)
 	{
 		K = undistort->getK().cast<float>();

@@ -30,6 +30,12 @@
 #include "FullSystem/HessianBlocks.h"
 #include "util/FrameShell.h"
 
+#include <opencv2/highgui/highgui.hpp>
+#include <opencv2/core/core.hpp>
+#include <opencv/cv.hpp>
+#include <opencv2/core/eigen.hpp>
+#include <Eigen/Core>
+
 namespace dso
 {
 
@@ -42,114 +48,44 @@ namespace dso
 
         class RegistrationOutputWrapper : public Output3DWrapper
         {
+
         public:
             EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
 
-            RegistrationOutputWrapper();
+            RegistrationOutputWrapper(int, int);
 
             virtual ~RegistrationOutputWrapper()
             {
                 printf("OUT: Destroyed SampleOutputWrapper\n");
             }
 
-            virtual void publishGraph(const std::map<uint64_t, Eigen::Vector2i, std::less<uint64_t>, Eigen::aligned_allocator<std::pair<const uint64_t, Eigen::Vector2i>>> &connectivity) override
-            {
-                printf("OUT: got graph with %d edges\n", (int)connectivity.size());
+            virtual void publishGraph(const std::map<uint64_t, Eigen::Vector2i, std::less<uint64_t>,
+                    Eigen::aligned_allocator<std::pair<const uint64_t, Eigen::Vector2i>>> &connectivity) override {}
 
-                int maxWrite = 5;
-
-                for(const std::pair<uint64_t,Eigen::Vector2i> &p : connectivity)
-                {
-                    int idHost = p.first>>32;
-                    int idTarget = p.first & ((uint64_t)0xFFFFFFFF);
-                    printf("OUT: Example Edge %d -> %d has %d active and %d marg residuals\n", idHost, idTarget, p.second[0], p.second[1]);
-                    maxWrite--;
-                    if(maxWrite==0) break;
-                }
-            }
-
-            virtual void publishKeyframes( std::vector<FrameHessian*> &frames, bool final, CalibHessian* HCalib) override
-            {
-                for(FrameHessian* f : frames)
-                {
-                    printf("OUT: KF %d (%s) (id %d, tme %f): %d active, %d marginalized, %d immature points. CameraToWorld:\n",
-                           f->frameID,
-                           final ? "final" : "non-final",
-                           f->shell->incoming_id,
-                           f->shell->timestamp,
-                           (int)f->pointHessians.size(), (int)f->pointHessiansMarginalized.size(), (int)f->immaturePoints.size());
-                    std::cout << f->shell->camToWorld.matrix3x4() << "\n";
-
-
-                    int maxWrite = 5;
-                    for(PointHessian* p : f->pointHessians)
-                    {
-                        printf("OUT: Example Point x=%.1f, y=%.1f, idepth=%f, idepth std.dev. %f, %d inlier-residuals\n",
-                               p->u, p->v, p->idepth_scaled, sqrt(1.0f / p->idepth_hessian), p->numGoodResiduals );
-                        maxWrite--;
-                        if(maxWrite==0) break;
-                    }
-                }
-            }
+            virtual void publishKeyframes( std::vector<FrameHessian*> &frames, bool final, CalibHessian* HCalib) override {}
 
             virtual void publishCamPose(FrameShell* frame, CalibHessian* HCalib) override;
-//            {
-//                printf("OUT: Current Frame %d (time %f, internal ID %d). CameraToWorld:\n",
-//                       frame->incoming_id,
-//                       frame->timestamp,
-//                       frame->id);
-//                std::cout << frame->camToWorld.matrix3x4() << "\n";
-//
-//                // M construction [fnaser]
-//                //m00 m01 m02 m03
-//                //m10 m11 m12 m13
-//                //m20 m21 m22 m23
-//                //last column is translation vector
-//                //3x3 matrix with diagonal m00 m11 and m22 is a rotation matrix
-//            }
-
 
             virtual void pushLiveFrame(FrameHessian* image) override;
-//            {
-//                // can be used to get the raw image / intensity pyramid.
-//            }
 
-            virtual void pushDepthImage(MinimalImageB3* image) override
-            {
-                // can be used to get the raw image with depth overlay.
-            }
-            virtual bool needPushDepthImage() override
-            {
+            virtual void pushDepthImage(MinimalImageB3* image) override {}
+
+            virtual bool needPushDepthImage() override {
                 return false;
             }
 
-            virtual void pushDepthImageFloat(MinimalImageF* image, FrameHessian* KF ) override
-            {
-                printf("OUT: Predicted depth for KF %d (id %d, time %f, internal frame-ID %d). CameraToWorld:\n",
-                       KF->frameID,
-                       KF->shell->incoming_id,
-                       KF->shell->timestamp,
-                       KF->shell->id);
-                std::cout << KF->shell->camToWorld.matrix3x4() << "\n";
-
-                int maxWrite = 5;
-                for(int y=0;y<image->h;y++)
-                {
-                    for(int x=0;x<image->w;x++)
-                    {
-                        if(image->at(x,y) <= 0) continue;
-
-                        printf("OUT: Example Idepth at pixel (%d,%d): %f.\n", x,y,image->at(x,y));
-                        maxWrite--;
-                        if(maxWrite==0) break;
-                    }
-                    if(maxWrite==0) break;
-                }
-            }
+            virtual void pushDepthImageFloat(MinimalImageF* image, FrameHessian* KF ) override {}
 
         private:
 
+            int h_, w_;
+            int start_idx_, seq_length_;
+
             std::vector<Eigen::Vector3d> world_pts_;
+            std::map<int, cv::Mat> seq_imgs_;
+            std::map<int, Eigen::Matrix<Sophus::SE3Group<double>::Scalar, 4, 4>> seq_Ms_;
+            boost::mutex seq_Ms_mutex_;
+            Eigen::Matrix<Sophus::SE3Group<double>::Scalar, 3, 3> K_;
 
             Eigen::Vector3d computeNormalToPlane(
                     std::vector<Eigen::Vector3d>  points);
@@ -162,7 +98,12 @@ namespace dso
             void computeH(
                     const Eigen::Matrix<Sophus::SE3Group<double>::Scalar, 4, 4> M_c1,
                     const Eigen::Matrix<Sophus::SE3Group<double>::Scalar, 4, 4> M_c2,
-                    const Eigen::Matrix<Sophus::SE3Group<double>::Scalar, 3, 3> K);
+                    const Eigen::Matrix<Sophus::SE3Group<double>::Scalar, 3, 3> K,
+                    std::vector<Eigen::Matrix<Sophus::SE3Group<double>::Scalar, 3, 3>>* Hs);
+
+            void checkFunctionOutput();
+
+            void showImgs();
         };
     }
 }

@@ -408,9 +408,9 @@ int main( int argc, char** argv )
 	}
 
 
-
 	if(useSampleOutput)
-		fullSystem->outputWrapper.push_back(new IOWrap::RegistrationOutputWrapper());
+		fullSystem->outputWrapper.push_back(
+				new IOWrap::RegistrationOutputWrapper(reader->getWidth(), reader->getHeight()));
 
 
 

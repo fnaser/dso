@@ -510,6 +510,7 @@ void PangolinDSOViewer::pushLiveFrame(FrameHessian* image)
 
 	boost::unique_lock<boost::mutex> lk(openImagesMutex);
 
+	// Construct img [fnaser]
 	for(int i=0;i<w*h;i++)
 		internalVideoImg->data[i][0] =
 		internalVideoImg->data[i][1] =
