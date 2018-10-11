@@ -104,6 +104,8 @@ namespace dso
             void checkFunctionOutput();
 
             void showImgs();
+
+            void storeImgs(cv::Mat img, int id);
         };
     }
 }

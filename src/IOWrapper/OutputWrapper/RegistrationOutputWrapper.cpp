@@ -83,7 +83,7 @@ void dso::IOWrap::RegistrationOutputWrapper::showImgs() {
             seq_Ms_.find(start_idx_)->second;
     cv::Mat img_start = seq_imgs_.find(start_idx_)->second;
     cv::Size size_start = img_start.size();
-    std::string cvwname = "Image Window Test [homography]";
+    std::string cvwname = "Image Window Test [homography]"; //TODO param
 
     cv::imshow(cvwname, img_start);
     cv::waitKey(1000);
@@ -96,8 +96,8 @@ void dso::IOWrap::RegistrationOutputWrapper::showImgs() {
 
         cv::Mat Hp;
         cv::eigen2cv(Hs[1], Hp);
-        cv::Mat He;
-        cv::eigen2cv(Hs[0], He);
+//        cv::Mat He;
+//        cv::eigen2cv(Hs[0], He);
 
 //        std::cout << Hp << std::endl;
 //        std::cout << Hs[1] << std::endl;
@@ -106,7 +106,22 @@ void dso::IOWrap::RegistrationOutputWrapper::showImgs() {
         cv::warpPerspective(seq_imgs_.find(i)->second, tmp_img, Hp, size_start);
 
         cv::imshow(cvwname, tmp_img);
-        cv::waitKey(100);
+        cv::waitKey(500);
+
+        this->storeImgs(tmp_img, i);
+    }
+}
+
+void dso::IOWrap::RegistrationOutputWrapper::storeImgs(cv::Mat img, int id) {
+    std::vector<int> compression_params;
+    compression_params.push_back(CV_IMWRITE_PNG_COMPRESSION);
+    compression_params.push_back(9);
+
+    try {
+        cv::imwrite("/home/fnaser/Pictures/testing_dso_H/"+std::to_string(id)+".png", img, compression_params); //TODO param
+    }
+    catch (std::runtime_error& ex) {
+        fprintf(stderr, "Exception converting image to PNG format: %s\n", ex.what());
     }
 }
 
