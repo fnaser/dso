@@ -149,8 +149,20 @@ namespace dso
 
         private:
 
-            std::vector<Eigen::Matrix<Sophus::SE3Group<double>::Scalar, 1, 3>> world_pts_;
+            std::vector<Eigen::Vector3d> world_pts_;
 
+            Eigen::Vector3d computeNormalToPlane(
+                    std::vector<Eigen::Vector3d>  points);
+
+            void computeWPtsInCamFrame(
+                    const std::vector<Eigen::Vector3d> input,
+                    std::vector<Eigen::Vector3d>* output,
+                    const Eigen::Matrix<Sophus::SE3Group<double>::Scalar, 4, 4> M);
+
+            void computeH(
+                    const Eigen::Matrix<Sophus::SE3Group<double>::Scalar, 4, 4> M_c1,
+                    const Eigen::Matrix<Sophus::SE3Group<double>::Scalar, 4, 4> M_c2,
+                    const Eigen::Matrix<Sophus::SE3Group<double>::Scalar, 3, 3> K);
         };
     }
 }
