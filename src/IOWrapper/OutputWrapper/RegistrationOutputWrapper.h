@@ -54,15 +54,12 @@ namespace dso
 
             RegistrationOutputWrapper(int, int);
 
-            virtual ~RegistrationOutputWrapper()
-            {
-                printf("OUT: Destroyed SampleOutputWrapper\n");
-            }
+            virtual ~RegistrationOutputWrapper();
 
             virtual void publishGraph(const std::map<uint64_t, Eigen::Vector2i, std::less<uint64_t>,
                     Eigen::aligned_allocator<std::pair<const uint64_t, Eigen::Vector2i>>> &connectivity) override {}
 
-            virtual void publishKeyframes( std::vector<FrameHessian*> &frames, bool final, CalibHessian* HCalib) override {}
+            virtual void publishKeyframes( std::vector<FrameHessian*> &frames, bool final, CalibHessian* HCalib) override;
 
             virtual void publishCamPose(FrameShell* frame, CalibHessian* HCalib) override;
 
@@ -81,10 +78,12 @@ namespace dso
             int h_, w_;
             int start_idx_, seq_length_;
 
+            std::vector<Eigen::Matrix<Sophus::SE3Group<double>::Scalar, 3, 1>> point_cloud_;
+
             std::vector<Eigen::Vector3d> world_pts_;
+            std::vector<Eigen::Vector3d> roi_pts_;
             std::map<int, cv::Mat> seq_imgs_;
             std::map<int, Eigen::Matrix<Sophus::SE3Group<double>::Scalar, 4, 4>> seq_Ms_;
-            boost::mutex seq_Ms_mutex_;
             Eigen::Matrix<Sophus::SE3Group<double>::Scalar, 3, 3> K_;
 
             Eigen::Vector3d computeNormalToPlane(
@@ -94,6 +93,10 @@ namespace dso
                     const std::vector<Eigen::Vector3d> input,
                     std::vector<Eigen::Vector3d>* output,
                     const Eigen::Matrix<Sophus::SE3Group<double>::Scalar, 4, 4> M);
+
+            void computeImgPts(const Eigen::Matrix<Sophus::SE3Group<double>::Scalar, 4, 4> M,
+                               const std::vector<Eigen::Vector3d> input,
+                               std::vector<cv::Point>* output);
 
             void computeH(
                     const Eigen::Matrix<Sophus::SE3Group<double>::Scalar, 4, 4> M_c1,
@@ -106,6 +109,10 @@ namespace dso
             void showImgs();
 
             void storeImgs(cv::Mat img, int id);
+
+            void drawFilledCircle(cv::Mat img, std::vector<cv::Point> center);
+
+            void vectorToFile(std::vector<Eigen::Matrix<Sophus::SE3Group<double>::Scalar, 3, 1>> vec);
         };
     }
 }
