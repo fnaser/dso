@@ -52,7 +52,7 @@ namespace dso
         public:
             EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
 
-            RegistrationOutputWrapper(int, int);
+            RegistrationOutputWrapper(int, int, bool);
 
             virtual ~RegistrationOutputWrapper();
 
@@ -75,19 +75,35 @@ namespace dso
 
         private:
 
+            struct labels {
+                std::string name;
+                int seq;
+                int label;
+            };
+            std::vector<labels> name_label_;
+
             int h_, w_;
             int start_idx_, seq_length_;
+            int seq_idx_;
 
-            std::vector<Eigen::Matrix<Sophus::SE3Group<double>::Scalar, 3, 1>> point_cloud_;
+            bool nogui_;
+            bool store_imgs_;
+            bool label_;
+
+            std::string img_folder_;
+            std::string csv_point_cloud_;
+            std::string csv_seq_labels_;
 
             std::vector<Eigen::Vector3d> world_pts_;
             std::vector<Eigen::Vector3d> roi_pts_;
+            std::vector<cv::Point> roi_pts_rectified_; //TODO needed?
             std::map<int, cv::Mat> seq_imgs_;
             std::map<int, Eigen::Matrix<Sophus::SE3Group<double>::Scalar, 4, 4>> seq_Ms_;
             Eigen::Matrix<Sophus::SE3Group<double>::Scalar, 3, 3> K_;
 
-            Eigen::Vector3d computeNormalToPlane(
-                    std::vector<Eigen::Vector3d>  points);
+            std::vector<Eigen::Matrix<Sophus::SE3Group<double>::Scalar, 3, 1>> point_cloud_;
+
+            Eigen::Vector3d computeNormalToPlane(std::vector<Eigen::Vector3d> points);
 
             void computeWPtsInCamFrame(
                     const std::vector<Eigen::Vector3d> input,
@@ -106,13 +122,14 @@ namespace dso
 
             void checkFunctionOutput();
 
+            void setStartIdx(int frameID);
+
             void showImgs();
-
             void storeImgs(cv::Mat img, int id);
-
             void drawFilledCircle(cv::Mat img, std::vector<cv::Point> center);
 
-            void vectorToFile(std::vector<Eigen::Matrix<Sophus::SE3Group<double>::Scalar, 3, 1>> vec);
+            void vectorToFile();
+            void labelsToFile();
         };
     }
 }

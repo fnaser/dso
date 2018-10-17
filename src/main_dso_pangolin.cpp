@@ -410,7 +410,9 @@ int main( int argc, char** argv )
 
 	if(useSampleOutput)
 		fullSystem->outputWrapper.push_back(
-				new IOWrap::RegistrationOutputWrapper(reader->getWidth(), reader->getHeight()));
+				new IOWrap::RegistrationOutputWrapper(reader->getWidth(),
+													  reader->getHeight(),
+													  disableAllDisplay));
 
 
 
@@ -571,6 +573,7 @@ int main( int argc, char** argv )
 
 	for(IOWrap::Output3DWrapper* ow : fullSystem->outputWrapper)
 	{
+		printf("deleting output wrapper");
 		ow->join();
 		delete ow;
 	}
