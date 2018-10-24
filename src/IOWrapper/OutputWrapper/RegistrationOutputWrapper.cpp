@@ -4,6 +4,8 @@
 
 #include "IOWrapper/OutputWrapper/RegistrationOutputWrapper.h"
 
+// =========================== Public Functions =========================
+
 dso::IOWrap::RegistrationOutputWrapper::RegistrationOutputWrapper(int w, int h, bool nogui)
 {
     printf("OUT: Created SampleOutputWrapper\n");
@@ -125,12 +127,6 @@ void dso::IOWrap::RegistrationOutputWrapper::pushLiveFrame(FrameHessian* image) 
     }
 }
 
-void dso::IOWrap::RegistrationOutputWrapper::setStartIdx(int frameID) {
-    if (start_idx_ == -1 || seq_Ms_.empty()) {
-        start_idx_ = frameID;
-    }
-}
-
 void dso::IOWrap::RegistrationOutputWrapper::publishKeyframes(
         std::vector<FrameHessian*> &frames,
         bool final, CalibHessian* HCalib) {
@@ -181,51 +177,11 @@ void dso::IOWrap::RegistrationOutputWrapper::publishKeyframes(
     }
 }
 
-void dso::IOWrap::RegistrationOutputWrapper::vectorToFile() {
-    std::cout << "vec to file" << std::endl;
-
-    std::ofstream tmp_file;
-    tmp_file.open(csv_point_cloud_);
-
-    if (tmp_file.is_open()) {
-
-        std::string x = "";
-        std::string y = "";
-        std::string z = "";
-
-        for(int i=0; i < this->point_cloud_.size(); i++) {
-            x.append(std::to_string(point_cloud_[i][0]) + ",");
-            y.append(std::to_string(point_cloud_[i][1]) + ",");
-            z.append(std::to_string(point_cloud_[i][2]) + ",");
-        }
-
-        tmp_file << x << std::endl;
-        tmp_file << y << std::endl;
-        tmp_file << z << std::endl;
-    }
-
-    tmp_file.close();
+bool dso::IOWrap::RegistrationOutputWrapper::needPushDepthImage() {
+    return false;
 }
 
-void dso::IOWrap::RegistrationOutputWrapper::labelsToFile() {
-    std::cout << "labels to file" << std::endl;
-
-    std::ofstream tmp_file;
-    tmp_file.open(this->csv_seq_labels_);
-
-    if (tmp_file.is_open()) {
-        for(int i=0; i<name_label_.size(); i++) {
-            tmp_file << name_label_[i].name
-                     << ","
-                     << name_label_[i].label
-                     << ","
-                     << name_label_[i].seq
-                     << std::endl;
-        }
-    }
-
-    tmp_file.close();
-}
+// =========================== Main Rectification Function =========================
 
 void dso::IOWrap::RegistrationOutputWrapper::showImgs() {
     std::cout << "\n" << "Show Imgs " << start_idx_ << std::endl;
@@ -285,6 +241,60 @@ void dso::IOWrap::RegistrationOutputWrapper::showImgs() {
             cv::waitKey(500);
         }
     }
+}
+
+// =========================== Util Functions =========================
+
+void dso::IOWrap::RegistrationOutputWrapper::setStartIdx(int frameID) {
+    if (start_idx_ == -1 || seq_Ms_.empty()) {
+        start_idx_ = frameID;
+    }
+}
+
+void dso::IOWrap::RegistrationOutputWrapper::vectorToFile() {
+    std::cout << "vec to file" << std::endl;
+
+    std::ofstream tmp_file;
+    tmp_file.open(csv_point_cloud_);
+
+    if (tmp_file.is_open()) {
+
+        std::string x = "";
+        std::string y = "";
+        std::string z = "";
+
+        for(int i=0; i < this->point_cloud_.size(); i++) {
+            x.append(std::to_string(point_cloud_[i][0]) + ",");
+            y.append(std::to_string(point_cloud_[i][1]) + ",");
+            z.append(std::to_string(point_cloud_[i][2]) + ",");
+        }
+
+        tmp_file << x << std::endl;
+        tmp_file << y << std::endl;
+        tmp_file << z << std::endl;
+    }
+
+    tmp_file.close();
+}
+
+void dso::IOWrap::RegistrationOutputWrapper::labelsToFile() {
+    std::cout << "labels to file" << std::endl;
+
+    std::ofstream tmp_file;
+    tmp_file.open(this->csv_seq_labels_);
+
+    if (tmp_file.is_open()) {
+        for(int i=0; i<name_label_.size(); i++) {
+            tmp_file << name_label_[i].name
+                     << ","
+                     << name_label_[i].label
+                     << ","
+                     << name_label_[i].seq
+                     << std::endl;
+        }
+    }
+
+    tmp_file.close();
 }
 
 void dso::IOWrap::RegistrationOutputWrapper::storeImgs(cv::Mat img, int id) {
@@ -372,6 +382,8 @@ void dso::IOWrap::RegistrationOutputWrapper::checkFunctionOutput() {
     assert(((Hs[0]-He).array() <= 0.001).count() == 9);
     assert(((Hs[1]-Hp).array() <= 0.001).count() == 9);
 }
+
+// =========================== Rectification Helper Functions =========================
 
 Eigen::Vector3d dso::IOWrap::RegistrationOutputWrapper::computeNormalToPlane(
         const std::vector<Eigen::Vector3d> points) {

@@ -53,25 +53,17 @@ namespace dso
             EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
 
             RegistrationOutputWrapper(int, int, bool);
-
             virtual ~RegistrationOutputWrapper();
 
             virtual void publishGraph(const std::map<uint64_t, Eigen::Vector2i, std::less<uint64_t>,
                     Eigen::aligned_allocator<std::pair<const uint64_t, Eigen::Vector2i>>> &connectivity) override {}
-
-            virtual void publishKeyframes( std::vector<FrameHessian*> &frames, bool final, CalibHessian* HCalib) override;
-
-            virtual void publishCamPose(FrameShell* frame, CalibHessian* HCalib) override;
-
-            virtual void pushLiveFrame(FrameHessian* image) override;
-
+            virtual void pushDepthImageFloat(MinimalImageF* image, FrameHessian* KF ) override {}
             virtual void pushDepthImage(MinimalImageB3* image) override {}
 
-            virtual bool needPushDepthImage() override {
-                return false;
-            }
-
-            virtual void pushDepthImageFloat(MinimalImageF* image, FrameHessian* KF ) override {}
+            virtual void publishKeyframes( std::vector<FrameHessian*> &frames, bool final, CalibHessian* HCalib) override;
+            virtual void publishCamPose(FrameShell* frame, CalibHessian* HCalib) override;
+            virtual void pushLiveFrame(FrameHessian* image) override;
+            virtual bool needPushDepthImage() override;
 
         private:
 
