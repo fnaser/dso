@@ -6,41 +6,21 @@
 
 // =========================== Public Functions =========================
 
-dso::IOWrap::RegistrationOutputWrapper::RegistrationOutputWrapper(int w, int h, bool nogui)
+dso::IOWrap::RegistrationOutputWrapper::RegistrationOutputWrapper(int w, int h,
+                                                                  bool nogui,
+                                                                  std::string pts)
 {
     printf("OUT: Created SampleOutputWrapper\n");
 
-    //TODO read vec from txt
+    // ROI
+    // 1 -- 0
+    // |
+    // 2 -- 3
 
-    //TODO params for seq 28
-    this->world_pts_.push_back(
-            Eigen::Vector3d(-1.5977, -2.8942, 4.7679));
-    this->world_pts_.push_back(
-            Eigen::Vector3d(-3.2313, -2.9793, 3.1786));
-    this->world_pts_.push_back(
-            Eigen::Vector3d(0.3451, 0.4708, 1.1789));
-    assert(this->world_pts_.size() == 3); //TODO param
+    readPtsFromFile(pts);
 
-    //TODO params for seq 28
-    this->roi_pts_.push_back(
-            Eigen::Vector3d(-0.5596, -0.0249, 1.0518)); // top right
-    this->roi_pts_.push_back(
-            Eigen::Vector3d(-0.6352, -0.0863, 1.0748)); // top left
-    this->roi_pts_.push_back(
-            Eigen::Vector3d(-0.6801, -0.0633, 0.9885)); // bottom left
-    this->roi_pts_.push_back(
-            Eigen::Vector3d(-0.6046, -0.0019, 0.9655)); // bottom right
-    assert(roi_pts_.size() >= 1); //TODO param
-
-    this->roi_pts_rectified_.push_back(
-            cv::Point(100,0));
-    this->roi_pts_rectified_.push_back(
-            cv::Point(0,0));
-    this->roi_pts_rectified_.push_back(
-            cv::Point(0,100));
-    this->roi_pts_rectified_.push_back(
-            cv::Point(100,100)); //TODO param //TODO needed?
-    assert(roi_pts_rectified_.size() == roi_pts_.size());
+    assert(this->plane_pts_.size() == 3);
+    assert(roi_pts_.size() == 4);
 
     this->w_ = w;
     this->h_ = h;
@@ -51,12 +31,12 @@ dso::IOWrap::RegistrationOutputWrapper::RegistrationOutputWrapper(int w, int h, 
 
     this->label_ = 0; //0: static 1: dynamic //TODO param
     this->store_imgs_ = false; //TODO param
-    this->rectification_on_ = false; //TODO param
+    this->rectification_on_ = true; //TODO param
     this->img_folder_ = "/home/fnaser/Pictures/testing_dso_H/cropped_"; //TODO param
     this->csv_point_cloud_ = "/home/fnaser/example.csv"; //TODO param
     this->csv_seq_labels_ = "/home/fnaser/labels_seq_28.csv"; //TODO param
 
-    checkFunctionOutput();
+    checkFunctionOutput(); //TODO
 }
 
 dso::IOWrap::RegistrationOutputWrapper::~RegistrationOutputWrapper()
@@ -92,18 +72,18 @@ void dso::IOWrap::RegistrationOutputWrapper::publishCamPose(dso::FrameShell* fra
             seq_imgs_.find(start_idx_ + seq_length_) != seq_imgs_.end()) {
 
             //TODO skipping imgs
-            this->showImgs();
+            this->constructSequence();
 
             seq_Ms_.erase(seq_Ms_.begin(), seq_Ms_.find(start_idx_));
             seq_imgs_.erase(seq_imgs_.begin(), seq_imgs_.find(start_idx_));
             start_idx_ = -1;
             seq_idx_++;
         }
+    }
 
-        if (frame->id % 100 == 0) { //TODO param
-            this->vectorToFile();
-            this->labelsToFile();
-        }
+    if (frame->id % 100 == 0) { //TODO param
+        this->vectorToFile();
+        this->labelsToFile();
     }
 }
 
@@ -140,7 +120,7 @@ void dso::IOWrap::RegistrationOutputWrapper::publishKeyframes(
     float cxi = -cx / fx;
     float cyi = -cy / fy;
 
-    for(int i=0; i < frames.size() && i < 1 && rectification_on_; i++) { //TODO param
+    for(int i=0; i < frames.size() && i < 1; i++) { //TODO param
 
         const Eigen::Matrix<Sophus::SE3Group<double>::Scalar, 3, 4> mTwc = frames[i]->shell->camToWorld.matrix3x4();
 
@@ -183,7 +163,7 @@ bool dso::IOWrap::RegistrationOutputWrapper::needPushDepthImage() {
 
 // =========================== Main Rectification Function =========================
 
-void dso::IOWrap::RegistrationOutputWrapper::showImgs() {
+void dso::IOWrap::RegistrationOutputWrapper::constructSequence() {
     std::cout << "\n" << "Show Imgs " << start_idx_ << std::endl;
     std::cout << "Ms " << seq_Ms_.size() << std::endl;
     std::cout << "Imgs " << seq_imgs_.size() << std::endl;
@@ -196,7 +176,6 @@ void dso::IOWrap::RegistrationOutputWrapper::showImgs() {
     cv::Size size_start;
     cv::Mat tmp_img;
     cv::Mat tmp_img_cropped;
-//    cv::Mat tmp_img_rectified; //TODO rectified
 
     for (int i=start_idx_; i < start_idx_+seq_length_; i++) {
         std::cout << i << std::endl;
@@ -204,8 +183,8 @@ void dso::IOWrap::RegistrationOutputWrapper::showImgs() {
         if (i==start_idx_) {
             tmp_img = seq_imgs_.find(start_idx_)->second;
             size_start = tmp_img.size();
-        } else {
 
+        } else {
             std::vector<Eigen::Matrix<Sophus::SE3Group<double>::Scalar, 3, 3>> Hs;
             this->computeH(seq_Ms_.find(i)->second, M_start, K_, &Hs);
 
@@ -214,9 +193,6 @@ void dso::IOWrap::RegistrationOutputWrapper::showImgs() {
 
             cv::warpPerspective(seq_imgs_.find(i)->second, tmp_img, Hp, size_start);
         }
-
-//        cv::Mat Hrect = cv::findHomography(img_pts, roi_pts_rectified_, CV_RANSAC); //TODO rectified
-//        cv::warpPerspective(tmp_img, tmp_img_rectified, Hrect, cv::Size(100,100)); //TODO rectified
 
         //TODO scaling of width and height
         try {
@@ -234,7 +210,6 @@ void dso::IOWrap::RegistrationOutputWrapper::showImgs() {
         }
 
         if (!nogui_) {
-//            cv::imshow("Image Window Test [homography] [rectified]", tmp_img_rectified); //TODO param and add to pangolin //TODO rectified
             cv::imshow("Image Window Test [homography] [cropped]", tmp_img_cropped); //TODO param and add to pangolin
             this->drawFilledCircle(tmp_img, img_pts);
             cv::imshow("Image Window Test [homography]", tmp_img); //TODO param and add to pangolin
@@ -244,6 +219,42 @@ void dso::IOWrap::RegistrationOutputWrapper::showImgs() {
 }
 
 // =========================== Util Functions =========================
+
+void dso::IOWrap::RegistrationOutputWrapper::readPtsFromFile(std::string pts) {
+    std::ifstream f(pts.c_str());
+    if (!f.good())
+    {
+        f.close();
+        printf(" ... not found. Cannot operate without world points, shutting down.\n");
+        f.close();
+    }
+    printf(" ... found!\n");
+
+    float tmp[3];
+    std::string line;
+    for (int i=0; i<3; i++) {
+        std::getline(f, line);
+        std::sscanf(line.c_str(),
+                    "%f %f %f",
+                    &tmp[0], &tmp[1], &tmp[2]);
+        this->plane_pts_.push_back(
+                Eigen::Vector3d(tmp[0], tmp[1], tmp[2]));
+
+        std::cout << line << std::endl;
+    }
+    std::getline(f, line);
+    for (int i=0; i<4; i++) {
+        std::getline(f, line);
+        std::sscanf(line.c_str(),
+                    "%f %f %f",
+                    &tmp[0], &tmp[1], &tmp[2]);
+        this->roi_pts_.push_back(
+                Eigen::Vector3d(tmp[0], tmp[1], tmp[2]));
+        std::cout << line << std::endl;
+    }
+
+    f.close();
+}
 
 void dso::IOWrap::RegistrationOutputWrapper::setStartIdx(int frameID) {
     if (start_idx_ == -1 || seq_Ms_.empty()) {
@@ -343,7 +354,7 @@ void dso::IOWrap::RegistrationOutputWrapper::checkFunctionOutput() {
             -0.045991, 0.0513149, 0.997623, -0.00978344,
             0, 0, 0, 1;
     std::vector<Eigen::Vector3d> wpts_15;
-    this->computeWPtsInCamFrame(this->world_pts_, &wpts_15, M_15.inverse());
+    this->computeWPtsInCamFrame(this->plane_pts_, &wpts_15, M_15.inverse());
     std::cout << wpts_15[0] << "\n" << std::endl;
     std::cout << wpts_15[1] << "\n" << std::endl;
     std::cout << wpts_15[2] << "\n" << std::endl;
@@ -351,7 +362,7 @@ void dso::IOWrap::RegistrationOutputWrapper::checkFunctionOutput() {
 
     //TODO unit test
     std::cout << Eigen::Vector3d(0.4769, -0.7551, -0.4498) << std::endl;
-    std::cout << this->computeNormalToPlane(this->world_pts_) << std::endl;
+    std::cout << this->computeNormalToPlane(this->plane_pts_) << std::endl;
     std::cout << "\n" << std::endl;
 
     //TODO unit test
@@ -447,7 +458,7 @@ void dso::IOWrap::RegistrationOutputWrapper::computeH(
 //              << "\n" << std::endl;
 
     std::vector<Eigen::Vector3d> wpts_c1;
-    this->computeWPtsInCamFrame(this->world_pts_, &wpts_c1, M_c1);
+    this->computeWPtsInCamFrame(this->plane_pts_, &wpts_c1, M_c1);
     Eigen::Vector3d vn_c1 = this->computeNormalToPlane(wpts_c1);
     Eigen::Matrix<Sophus::SE3Group<double>::Scalar, 4, 4> M_c1_c2 = M_c2 * M_c1.inverse();
     Eigen::Matrix<Sophus::SE3Group<double>::Scalar, 3, 3> He, Hp;

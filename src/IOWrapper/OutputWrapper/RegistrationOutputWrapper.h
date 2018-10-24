@@ -35,6 +35,7 @@
 #include <opencv/cv.hpp>
 #include <opencv2/core/eigen.hpp>
 #include <Eigen/Core>
+#include <string>
 
 namespace dso
 {
@@ -52,7 +53,7 @@ namespace dso
         public:
             EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
 
-            RegistrationOutputWrapper(int, int, bool);
+            RegistrationOutputWrapper(int, int, bool, std::string);
             virtual ~RegistrationOutputWrapper();
 
             virtual void publishGraph(const std::map<uint64_t, Eigen::Vector2i, std::less<uint64_t>,
@@ -87,9 +88,8 @@ namespace dso
             std::string csv_point_cloud_;
             std::string csv_seq_labels_;
 
-            std::vector<Eigen::Vector3d> world_pts_;
+            std::vector<Eigen::Vector3d> plane_pts_;
             std::vector<Eigen::Vector3d> roi_pts_;
-            std::vector<cv::Point> roi_pts_rectified_; //TODO needed?
             std::map<int, cv::Mat> seq_imgs_;
             std::map<int, Eigen::Matrix<Sophus::SE3Group<double>::Scalar, 4, 4>> seq_Ms_;
             Eigen::Matrix<Sophus::SE3Group<double>::Scalar, 3, 3> K_;
@@ -117,12 +117,13 @@ namespace dso
 
             void setStartIdx(int frameID);
 
-            void showImgs();
+            void constructSequence();
             void storeImgs(cv::Mat img, int id);
             void drawFilledCircle(cv::Mat img, std::vector<cv::Point> center);
 
             void vectorToFile();
             void labelsToFile();
+            void readPtsFromFile(std::string pts);
         };
     }
 }

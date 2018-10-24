@@ -55,6 +55,7 @@ std::string vignette = "";
 std::string gammaCalib = "";
 std::string source = "";
 std::string calib = "";
+std::string pts = "";
 double rescale = 1;
 bool reverse = false;
 bool disableROS = false;
@@ -65,13 +66,11 @@ float playbackSpeed=0;	// 0 for linearize (play as fast as possible, while seque
 bool preload=false;
 bool useSampleOutput=false;
 
-
 int mode=0;
 
 bool firstRosSpin=false;
 
 using namespace dso;
-
 
 void my_exit_handler(int s)
 {
@@ -154,7 +153,6 @@ void parseArgument(char* arg)
 	int option;
 	float foption;
 	char buf[1000];
-
 
 	if(1==sscanf(arg,"sampleoutput=%d",&option))
 	{
@@ -275,6 +273,13 @@ void parseArgument(char* arg)
 	{
 		calib = buf;
 		printf("loading calibration from %s!\n", calib.c_str());
+		return;
+	}
+
+	if(1==sscanf(arg,"pts=%s",buf))
+	{
+		pts = buf;
+		printf("loading roi and plane points from %s!\n", pts.c_str());
 		return;
 	}
 
@@ -412,7 +417,8 @@ int main( int argc, char** argv )
 		fullSystem->outputWrapper.push_back(
 				new IOWrap::RegistrationOutputWrapper(reader->getWidth(),
 													  reader->getHeight(),
-													  disableAllDisplay));
+													  disableAllDisplay,
+													  pts));
 
 
 
