@@ -254,6 +254,24 @@ using the TUM RGB-D / TUM monoVO format ([timestamp x y z qx qy qz qw] of the ca
 
 ### 4 General Notes for Good Results
 
+#### Calibration tools
+
+ - http://wiki.ros.org/ethzasl_ptam/Tutorials/camera_calibration
+ - http://wiki.ros.org/camera_calibration
+
+```
+rosrun camera_calibration cameracalibrator.py --size 10x7 --square 0.0229 image:=/ueye/image_raw camera:=/ueye/ #count edges
+```
+
+Edit the PtamFixParams.yaml file and set the parameters "ImageSizeX" "ImageSizeY" to your image resolution.
+
+Edit the cameracalibrator.launch file to map the image to your image topic `_mono`.
+
+```
+ROS_NAMESPACE=/ueye rosrun image_proc image_proc
+roslaunch ptam cameracalibrator.launch
+```
+
 #### Accurate Geometric Calibration
 - Please have a look at Chapter 4.3 from the DSO paper, in particular Figure 20 (Geometric Noise). Direct approaches suffer a LOT from bad geometric calibrations: Geometric distortions of 1.5 pixel already reduce the accuracy by factor 10.
 

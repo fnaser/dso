@@ -89,6 +89,7 @@ namespace dso
             bool nogui_;
             bool store_imgs_;
             bool label_;
+            bool rectification_on_;
 
             std::string img_folder_;
             std::string csv_point_cloud_;

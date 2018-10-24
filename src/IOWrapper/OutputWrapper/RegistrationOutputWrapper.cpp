@@ -48,7 +48,8 @@ dso::IOWrap::RegistrationOutputWrapper::RegistrationOutputWrapper(int w, int h, 
     this->seq_idx_ = 0;
 
     this->label_ = 0; //0: static 1: dynamic //TODO param
-    this->store_imgs_ = true; //TODO param
+    this->store_imgs_ = false; //TODO param
+    this->rectification_on_ = false; //TODO param
     this->img_folder_ = "/home/fnaser/Pictures/testing_dso_H/cropped_"; //TODO param
     this->csv_point_cloud_ = "/home/fnaser/example.csv"; //TODO param
     this->csv_seq_labels_ = "/home/fnaser/labels_seq_28.csv"; //TODO param
@@ -65,58 +66,63 @@ dso::IOWrap::RegistrationOutputWrapper::~RegistrationOutputWrapper()
 
 void dso::IOWrap::RegistrationOutputWrapper::publishCamPose(dso::FrameShell* frame,
                                                             dso::CalibHessian* HCalib) {
-    K_ = Eigen::Matrix<Sophus::SE3Group<double>::Scalar, 3, 3>::Zero(3, 3);
-    K_(0,0) = HCalib->fxl();
-    K_(1,1) = HCalib->fyl();
-    K_(0,2) = HCalib->cxl();
-    K_(1,2) = HCalib->cyl();
-    K_(2,2) = 1;
+    if (rectification_on_) {
+        K_ = Eigen::Matrix<Sophus::SE3Group<double>::Scalar, 3, 3>::Zero(3, 3);
+        K_(0, 0) = HCalib->fxl();
+        K_(1, 1) = HCalib->fyl();
+        K_(0, 2) = HCalib->cxl();
+        K_(1, 2) = HCalib->cyl();
+        K_(2, 2) = 1;
 
-    Eigen::Matrix<Sophus::SE3Group<double>::Scalar, 4, 4> M =
-            Eigen::Matrix<Sophus::SE3Group<double>::Scalar, 4, 4>::Zero(4, 4);
-    M.block<3,4>(0,0) = frame->camToWorld.matrix3x4();
-    M(3,3) = 1.0;
-    M = M.inverse().eval();
-    std::pair<int, Eigen::Matrix<Sophus::SE3Group<double>::Scalar, 4, 4>> tmp(frame->id, M);
-    seq_Ms_.insert(tmp);
+        Eigen::Matrix<Sophus::SE3Group<double>::Scalar, 4, 4> M =
+                Eigen::Matrix<Sophus::SE3Group<double>::Scalar, 4, 4>::Zero(4, 4);
+        M.block<3, 4>(0, 0) = frame->camToWorld.matrix3x4();
+        M(3, 3) = 1.0;
+        M = M.inverse().eval();
+        std::pair<int, Eigen::Matrix<Sophus::SE3Group<double>::Scalar, 4, 4>> tmp(frame->id, M);
+        seq_Ms_.insert(tmp);
 
-    setStartIdx(frame->id);
+        setStartIdx(frame->id);
 
-    if (seq_Ms_.find(start_idx_) != seq_Ms_.end() &&
-        seq_Ms_.find(start_idx_+seq_length_) != seq_Ms_.end() &&
-        seq_imgs_.find(start_idx_) != seq_imgs_.end() &&
-        seq_imgs_.find(start_idx_+seq_length_) != seq_imgs_.end()) {
+        if (seq_Ms_.find(start_idx_) != seq_Ms_.end() &&
+            seq_Ms_.find(start_idx_ + seq_length_) != seq_Ms_.end() &&
+            seq_imgs_.find(start_idx_) != seq_imgs_.end() &&
+            seq_imgs_.find(start_idx_ + seq_length_) != seq_imgs_.end()) {
 
-        this->showImgs();
+            //TODO skipping imgs
+            this->showImgs();
 
-        seq_Ms_.erase(seq_Ms_.begin(), seq_Ms_.find(start_idx_));
-        seq_imgs_.erase(seq_imgs_.begin(), seq_imgs_.find(start_idx_));
-        start_idx_ = -1;
-        seq_idx_++;
-    }
+            seq_Ms_.erase(seq_Ms_.begin(), seq_Ms_.find(start_idx_));
+            seq_imgs_.erase(seq_imgs_.begin(), seq_imgs_.find(start_idx_));
+            start_idx_ = -1;
+            seq_idx_++;
+        }
 
-    if (frame->id % 100 == 0) { //TODO param
-        this->vectorToFile();
-        this->labelsToFile();
+        if (frame->id % 100 == 0) { //TODO param
+            this->vectorToFile();
+            this->labelsToFile();
+        }
     }
 }
 
 void dso::IOWrap::RegistrationOutputWrapper::pushLiveFrame(FrameHessian* image) {
-    MinimalImageB3* internalVideoImg = new MinimalImageB3(w_,h_);
-    internalVideoImg->setBlack();
+    if (rectification_on_) {
+        MinimalImageB3 *internalVideoImg = new MinimalImageB3(w_, h_);
+        internalVideoImg->setBlack();
 
-    for(int i=0;i<w_*h_;i++) {
-        internalVideoImg->data[i][0] =
-        internalVideoImg->data[i][1] =
-        internalVideoImg->data[i][2] =
-                image->dI[i][0] * 0.8 > 255.0f ? 255.0 : image->dI[i][0] * 0.8;
+        for (int i = 0; i < w_ * h_; i++) {
+            internalVideoImg->data[i][0] =
+            internalVideoImg->data[i][1] =
+            internalVideoImg->data[i][2] =
+                    image->dI[i][0] * 0.8 > 255.0f ? 255.0 : image->dI[i][0] * 0.8;
+        }
+
+        int frameID = image->shell->id;
+        cv::Mat tmp = cv::Mat(h_, w_, CV_8UC3, internalVideoImg->data);
+        seq_imgs_.insert(std::pair<int, cv::Mat>(frameID, tmp));
+
+        setStartIdx(frameID);
     }
-
-    int frameID = image->shell->id;
-    cv::Mat tmp = cv::Mat(h_, w_, CV_8UC3, internalVideoImg->data);
-    seq_imgs_.insert(std::pair<int, cv::Mat>(frameID, tmp));
-
-    setStartIdx(frameID);
 }
 
 void dso::IOWrap::RegistrationOutputWrapper::setStartIdx(int frameID) {
@@ -138,7 +144,7 @@ void dso::IOWrap::RegistrationOutputWrapper::publishKeyframes(
     float cxi = -cx / fx;
     float cyi = -cy / fy;
 
-    for(int i=0; i < frames.size() && i < 1; i++) { //TODO param
+    for(int i=0; i < frames.size() && i < 1 && rectification_on_; i++) { //TODO param
 
         const Eigen::Matrix<Sophus::SE3Group<double>::Scalar, 3, 4> mTwc = frames[i]->shell->camToWorld.matrix3x4();
 
@@ -234,7 +240,7 @@ void dso::IOWrap::RegistrationOutputWrapper::showImgs() {
     cv::Size size_start;
     cv::Mat tmp_img;
     cv::Mat tmp_img_cropped;
-//    cv::Mat tmp_img_rectified;
+//    cv::Mat tmp_img_rectified; //TODO rectified
 
     for (int i=start_idx_; i < start_idx_+seq_length_; i++) {
         std::cout << i << std::endl;
@@ -253,8 +259,8 @@ void dso::IOWrap::RegistrationOutputWrapper::showImgs() {
             cv::warpPerspective(seq_imgs_.find(i)->second, tmp_img, Hp, size_start);
         }
 
-//        cv::Mat Hrect = cv::findHomography(img_pts, roi_pts_rectified_, CV_RANSAC);
-//        cv::warpPerspective(tmp_img, tmp_img_rectified, Hrect, size_start);
+//        cv::Mat Hrect = cv::findHomography(img_pts, roi_pts_rectified_, CV_RANSAC); //TODO rectified
+//        cv::warpPerspective(tmp_img, tmp_img_rectified, Hrect, cv::Size(100,100)); //TODO rectified
 
         //TODO scaling of width and height
         try {
@@ -272,7 +278,7 @@ void dso::IOWrap::RegistrationOutputWrapper::showImgs() {
         }
 
         if (!nogui_) {
-//        cv::imshow("Image Window Test [homography] [rectified]", tmp_img_rectified); //TODO param and add to pangolin
+//            cv::imshow("Image Window Test [homography] [rectified]", tmp_img_rectified); //TODO param and add to pangolin //TODO rectified
             cv::imshow("Image Window Test [homography] [cropped]", tmp_img_cropped); //TODO param and add to pangolin
             this->drawFilledCircle(tmp_img, img_pts);
             cv::imshow("Image Window Test [homography]", tmp_img); //TODO param and add to pangolin
