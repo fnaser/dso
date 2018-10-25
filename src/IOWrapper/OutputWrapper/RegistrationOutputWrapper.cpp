@@ -29,7 +29,7 @@ dso::IOWrap::RegistrationOutputWrapper::RegistrationOutputWrapper(int w, int h,
     this->start_idx_ = -1;
     this->seq_idx_ = 0;
 
-    this->label_ = 0; //0: static 1: dynamic //TODO param
+    this->label_ = 1; //0: static 1: dynamic //TODO param
     this->img_folder_ = root_dir + "cropped/cropped_";
     this->csv_point_cloud_ = root_dir + "point_cloud.csv";
     this->csv_seq_labels_ = root_dir + "labels.csv";
@@ -214,7 +214,8 @@ void dso::IOWrap::RegistrationOutputWrapper::constructSequence() {
         bool valid_tmp_img = tmp_img.size().width > 0 &&
                              tmp_img.size().height > 0;
         bool valid_tmp_img_cropped = tmp_img_cropped.size().width > 0 &&
-                                     tmp_img_cropped.size().height > 0;
+                                     tmp_img_cropped.size().height > 0 &&
+                                     tmp_img_cropped.size().height >= MIN_CROPPED_HEIGHT;
         valid_seq = valid_seq && valid_tmp_img && valid_tmp_img_cropped;
 
         if (store_imgs_ && valid_seq) {

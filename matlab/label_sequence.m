@@ -18,7 +18,7 @@ close all, clear all, clc;
 
 %% Load data
 
-root = '/home/fnaser/DropboxMIT/Holodeck/ShadowCam_DataSet_Oct2018/sequence_m_1/';
+root = '/home/fnaser/DropboxMIT/Holodeck/ShadowCam_DataSet_Oct2018/sequence_nom_1/';
 
 pts = csvread([root 'point_cloud.csv']);
 pc = pointCloud(pts);
@@ -52,6 +52,27 @@ roi1 = [-6.7832 2.9070 3.3127];
 roi2 = [-7.2427 3.1954 2.6090];
 roi3 = [-6.4901 2.9292 2.2057];
 roi4 = [-6.1085 2.7998 2.9040];
+
+%% drl seq nom 1
+
+P1 = [-1.7149 0.5683 1.0878];
+P2 = [-5.7337 0.2847 0.9669];
+P3 = [-8.3723 0.3138 2.9823];
+
+% roi1 = [-4.2751 0.3498 0.6430];
+% roi2 = [-4.1378 0.4221 1.2562];
+% roi3 = [-4.7639 0.4046 1.4963];
+% roi4 = [-4.9175 0.2823 0.8632];
+
+% roi1 = [-9.2738 0.1998 2.4651];
+% roi2 = [-9.5104 0.1199 1.8425];
+% roi3 = [-8.9835 0.1298 1.5929];
+% roi4 = [-8.7470 0.2097 2.2155];
+
+roi1 = [-8.0688 0.1645 2.1541];
+roi2 = [-8.3574 0.1473 1.3527];
+roi3 = [-7.5226 0.1707 1.0325];
+roi4 = [-7.1181 0.2945 1.9712];
 
 %% plotting
 

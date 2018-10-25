@@ -39,6 +39,7 @@
 
 static const int ROI_POINTS = 4;
 static const int PLANE_POINTS = 3;
+static const int MIN_CROPPED_HEIGHT = 35;
 
 namespace dso
 {

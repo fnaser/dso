@@ -66,7 +66,7 @@ int end=100000;
 bool prefetch = false;
 float playbackSpeed=0;	// 0 for linearize (play as fast as possible, while sequentializing tracking & mapping). otherwise, factor on timestamps.
 bool preload=false;
-bool useSampleOutput=false;
+bool useSampleOutput=true;
 
 int mode=0;
 
@@ -162,6 +162,8 @@ void parseArgument(char* arg)
         {
             useSampleOutput = true;
             printf("USING SAMPLE OUTPUT WRAPPER!\n");
+        } else {
+            useSampleOutput = false;
         }
         return;
     }
@@ -182,7 +184,6 @@ void parseArgument(char* arg)
         return;
     }
 
-
     if(1==sscanf(arg,"rec=%d",&option))
     {
         if(option==0)
@@ -192,8 +193,6 @@ void parseArgument(char* arg)
         }
         return;
     }
-
-
 
     if(1==sscanf(arg,"noros=%d",&option))
     {
@@ -215,6 +214,7 @@ void parseArgument(char* arg)
         }
         return;
     }
+
     if(1==sscanf(arg,"reverse=%d",&option))
     {
         if(option==1)
@@ -254,6 +254,7 @@ void parseArgument(char* arg)
         }
         return;
     }
+
     if(1==sscanf(arg,"prefetch=%d",&option))
     {
         if(option==1)
@@ -263,12 +264,14 @@ void parseArgument(char* arg)
         }
         return;
     }
+
     if(1==sscanf(arg,"start=%d",&option))
     {
         start = option;
         printf("START AT %d!\n",start);
         return;
     }
+
     if(1==sscanf(arg,"end=%d",&option))
     {
         end = option;
