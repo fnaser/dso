@@ -37,6 +37,9 @@
 #include <Eigen/Core>
 #include <string>
 
+static const int ROI_POINTS = 4;
+static const int PLANE_POINTS = 3;
+
 namespace dso
 {
 
@@ -53,7 +56,7 @@ namespace dso
         public:
             EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
 
-            RegistrationOutputWrapper(int, int, bool, std::string);
+            RegistrationOutputWrapper(int, int, bool, bool, std::string, std::string);
             virtual ~RegistrationOutputWrapper();
 
             virtual void publishGraph(const std::map<uint64_t, Eigen::Vector2i, std::less<uint64_t>,
@@ -80,6 +83,8 @@ namespace dso
             int seq_idx_;
 
             bool nogui_;
+            bool store_pc_;
+            bool rect;
             bool store_imgs_;
             bool label_;
             bool rectification_on_;
@@ -96,9 +101,9 @@ namespace dso
 
             std::vector<Eigen::Matrix<Sophus::SE3Group<double>::Scalar, 3, 1>> point_cloud_;
 
-            Eigen::Vector3d computeNormalToPlane(std::vector<Eigen::Vector3d> points);
+            static Eigen::Vector3d computeNormalToPlane(std::vector<Eigen::Vector3d> points);
 
-            void computeWPtsInCamFrame(
+            static void computeWPtsInCamFrame(
                     const std::vector<Eigen::Vector3d> input,
                     std::vector<Eigen::Vector3d>* output,
                     const Eigen::Matrix<Sophus::SE3Group<double>::Scalar, 4, 4> M);
@@ -118,8 +123,8 @@ namespace dso
             void setStartIdx(int frameID);
 
             void constructSequence();
-            void storeImgs(cv::Mat img, int id);
-            void drawFilledCircle(cv::Mat img, std::vector<cv::Point> center);
+            void storeImgs(std::map<int, cv::Mat> imgs);
+            static void drawFilledCircle(cv::Mat img, std::vector<cv::Point> center);
 
             void vectorToFile();
             void labelsToFile();

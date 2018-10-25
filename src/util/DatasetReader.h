@@ -113,6 +113,7 @@ public:
 #endif
 
 		isZipped = (path.length()>4 && path.substr(path.length()-4) == ".zip");
+		std::cout << "is zipped: " << isZipped << std::endl;
 
 
 

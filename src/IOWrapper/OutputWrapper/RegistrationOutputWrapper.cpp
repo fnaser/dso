@@ -8,6 +8,8 @@
 
 dso::IOWrap::RegistrationOutputWrapper::RegistrationOutputWrapper(int w, int h,
                                                                   bool nogui,
+                                                                  bool rect,
+                                                                  std::string root_dir,
                                                                   std::string pts)
 {
     printf("OUT: Created SampleOutputWrapper\n");
@@ -18,32 +20,35 @@ dso::IOWrap::RegistrationOutputWrapper::RegistrationOutputWrapper(int w, int h,
     // 2 -- 3
 
     readPtsFromFile(pts);
-
-    assert(this->plane_pts_.size() == 3);
-    assert(roi_pts_.size() == 4);
+    assert(this->plane_pts_.size() == PLANE_POINTS);
+    assert(roi_pts_.size() == ROI_POINTS);
 
     this->w_ = w;
     this->h_ = h;
-    this->nogui_ = nogui;
     this->seq_length_ = 10; //TODO param
     this->start_idx_ = -1;
     this->seq_idx_ = 0;
 
     this->label_ = 0; //0: static 1: dynamic //TODO param
-    this->store_imgs_ = false; //TODO param
-    this->rectification_on_ = true; //TODO param
-    this->img_folder_ = "/home/fnaser/Pictures/testing_dso_H/cropped_"; //TODO param
-    this->csv_point_cloud_ = "/home/fnaser/example.csv"; //TODO param
-    this->csv_seq_labels_ = "/home/fnaser/labels_seq_28.csv"; //TODO param
+    this->img_folder_ = root_dir + "cropped/cropped_";
+    this->csv_point_cloud_ = root_dir + "point_cloud.csv";
+    this->csv_seq_labels_ = root_dir + "labels.csv";
 
-    checkFunctionOutput(); //TODO
+    // Buttons
+    this->nogui_ = nogui;
+    this->store_imgs_ = true; //TODO param
+    this->store_pc_ = false; //TODO param
+    this->rectification_on_ = rect;
+
+//    checkFunctionOutput(); //TODO
 }
 
 dso::IOWrap::RegistrationOutputWrapper::~RegistrationOutputWrapper()
 {
     printf("OUT: Destroyed SampleOutputWrapper\n");
-    this->vectorToFile();
-    this->labelsToFile();
+    if (this->store_pc_) {
+        this->vectorToFile();
+    }
 }
 
 void dso::IOWrap::RegistrationOutputWrapper::publishCamPose(dso::FrameShell* frame,
@@ -81,9 +86,8 @@ void dso::IOWrap::RegistrationOutputWrapper::publishCamPose(dso::FrameShell* fra
         }
     }
 
-    if (frame->id % 100 == 0) { //TODO param
+    if (this->store_pc_ && frame->id % 100 == 0) { //TODO param
         this->vectorToFile();
-        this->labelsToFile();
     }
 }
 
@@ -120,7 +124,7 @@ void dso::IOWrap::RegistrationOutputWrapper::publishKeyframes(
     float cxi = -cx / fx;
     float cyi = -cy / fy;
 
-    for(int i=0; i < frames.size() && i < 1; i++) { //TODO param
+    for(int i=0; i < frames.size() && i < 5; i++) { //TODO param
 
         const Eigen::Matrix<Sophus::SE3Group<double>::Scalar, 3, 4> mTwc = frames[i]->shell->camToWorld.matrix3x4();
 
@@ -135,17 +139,17 @@ void dso::IOWrap::RegistrationOutputWrapper::publishKeyframes(
             float y_c = (v - cy)/fy*depth;
             float z_c = depth;
 
-            float x_w =
+            double x_w =
                     mTwc(0,0)*x_c
                     + mTwc(0,1)*y_c
                     + mTwc(0,2)*z_c
                     + mTwc(0,3);
-            float y_w =
+            double y_w =
                     mTwc(1,0)*x_c
                     + mTwc(1,1)*y_c
                     + mTwc(1,2)*z_c
                     +mTwc(1,3);
-            float z_w =
+            double z_w =
                     mTwc(2,0)*x_c
                     + mTwc(2,1)*y_c
                     + mTwc(2,2)*z_c
@@ -176,8 +180,10 @@ void dso::IOWrap::RegistrationOutputWrapper::constructSequence() {
     cv::Size size_start;
     cv::Mat tmp_img;
     cv::Mat tmp_img_cropped;
+    std::map<int, cv::Mat> seq_tmp_img_cropped;
+    bool valid_seq = true;
 
-    for (int i=start_idx_; i < start_idx_+seq_length_; i++) {
+    for (int i=start_idx_; i < start_idx_+seq_length_ && valid_seq; i++) {
         std::cout << i << std::endl;
 
         if (i==start_idx_) {
@@ -194,27 +200,40 @@ void dso::IOWrap::RegistrationOutputWrapper::constructSequence() {
             cv::warpPerspective(seq_imgs_.find(i)->second, tmp_img, Hp, size_start);
         }
 
-        //TODO scaling of width and height
         try {
-            assert(img_pts.size()==4);
-            tmp_img_cropped = tmp_img(cv::Rect(img_pts[0].x,
-                                               img_pts[0].y,
-                                               40,
-                                               40));
+            int w = (int) cv::norm(cv::Mat(img_pts[0]), cv::Mat(img_pts[1]));
+            int h = (int) cv::norm(cv::Mat(img_pts[1]), cv::Mat(img_pts[2]));
+            int y = (img_pts[1].y + img_pts[0].y) / 2;
+            tmp_img_cropped = tmp_img(cv::Rect(img_pts[1].x, y, w,h)).clone();
+
         } catch (cv::Exception& e) {
-            std::cout << "cropping failed" << std::endl;
+            std::cout << "ERROR: cropping failed" << std::endl;
+            valid_seq = false;
         }
 
-        if (store_imgs_) {
-            this->storeImgs(tmp_img_cropped, i);
+        bool valid_tmp_img = tmp_img.size().width > 0 &&
+                             tmp_img.size().height > 0;
+        bool valid_tmp_img_cropped = tmp_img_cropped.size().width > 0 &&
+                                     tmp_img_cropped.size().height > 0;
+        valid_seq = valid_seq && valid_tmp_img && valid_tmp_img_cropped;
+
+        if (store_imgs_ && valid_seq) {
+            seq_tmp_img_cropped[i] = tmp_img_cropped;
         }
 
-        if (!nogui_) {
+        if (!nogui_ && valid_seq) {
             cv::imshow("Image Window Test [homography] [cropped]", tmp_img_cropped); //TODO param and add to pangolin
             this->drawFilledCircle(tmp_img, img_pts);
             cv::imshow("Image Window Test [homography]", tmp_img); //TODO param and add to pangolin
-            cv::waitKey(500);
+            cv::waitKey(250); //TODO param
         }
+    }
+
+    if (store_imgs_ &&
+        valid_seq &&
+        seq_tmp_img_cropped.size() == seq_length_) {
+        this->storeImgs(seq_tmp_img_cropped);
+        this->labelsToFile();
     }
 }
 
@@ -222,13 +241,11 @@ void dso::IOWrap::RegistrationOutputWrapper::constructSequence() {
 
 void dso::IOWrap::RegistrationOutputWrapper::readPtsFromFile(std::string pts) {
     std::ifstream f(pts.c_str());
-    if (!f.good())
-    {
+    if (!f.good()) {
         f.close();
-        printf(" ... not found. Cannot operate without world points, shutting down.\n");
+        printf(" ... not found. Cannot operate without world points, shutting down.\n"); //TODO
         f.close();
     }
-    printf(" ... found!\n");
 
     float tmp[3];
     std::string line;
@@ -269,20 +286,11 @@ void dso::IOWrap::RegistrationOutputWrapper::vectorToFile() {
     tmp_file.open(csv_point_cloud_);
 
     if (tmp_file.is_open()) {
-
-        std::string x = "";
-        std::string y = "";
-        std::string z = "";
-
         for(int i=0; i < this->point_cloud_.size(); i++) {
-            x.append(std::to_string(point_cloud_[i][0]) + ",");
-            y.append(std::to_string(point_cloud_[i][1]) + ",");
-            z.append(std::to_string(point_cloud_[i][2]) + ",");
+            tmp_file << std::to_string(point_cloud_[i][0]) + ","
+                     << std::to_string(point_cloud_[i][1]) + ","
+                     << std::to_string(point_cloud_[i][2]) << std::endl;
         }
-
-        tmp_file << x << std::endl;
-        tmp_file << y << std::endl;
-        tmp_file << z << std::endl;
     }
 
     tmp_file.close();
@@ -308,23 +316,27 @@ void dso::IOWrap::RegistrationOutputWrapper::labelsToFile() {
     tmp_file.close();
 }
 
-void dso::IOWrap::RegistrationOutputWrapper::storeImgs(cv::Mat img, int id) {
+void dso::IOWrap::RegistrationOutputWrapper::storeImgs(std::map<int, cv::Mat> imgs) {
     //TODO png to param
     std::vector<int> compression_params;
     compression_params.push_back(CV_IMWRITE_PNG_COMPRESSION);
     compression_params.push_back(9);
 
-    try {
-        std::string filename = img_folder_+std::to_string(id)+".png";
-        labels tmp_labels;
-        tmp_labels.name = filename;
-        tmp_labels.label = label_;
-        tmp_labels.seq = seq_idx_;
-        cv::imwrite(filename, img, compression_params);
-        this->name_label_.push_back(tmp_labels);
-    }
-    catch (std::runtime_error& ex) {
-        fprintf(stderr, "Exception converting image to PNG format: %s\n", ex.what());
+    for (std::map<int, cv::Mat>::iterator it = imgs.begin();
+         it != imgs.end(); it++) {
+        try {
+            std::string filename = img_folder_ + std::to_string(it->first) + ".png";
+            std::cout << filename << std::endl;
+            labels tmp_labels;
+            tmp_labels.name = filename;
+            tmp_labels.label = label_;
+            tmp_labels.seq = seq_idx_;
+            cv::imwrite(filename, it->second, compression_params);
+            this->name_label_.push_back(tmp_labels);
+        }
+        catch (std::runtime_error &ex) {
+            fprintf(stderr, "Exception converting image to PNG format: %s\n", ex.what());
+        }
     }
 }
 
@@ -347,6 +359,14 @@ void dso::IOWrap::RegistrationOutputWrapper::drawFilledCircle(
 //TODO convert to unit tests
 void dso::IOWrap::RegistrationOutputWrapper::checkFunctionOutput() {
 
+    std::vector<Eigen::Vector3d> plane_pts_tmp;
+    plane_pts_tmp.push_back(
+            Eigen::Vector3d(-1.5977, -2.8942, 4.7679));
+    plane_pts_tmp.push_back(
+            Eigen::Vector3d(-3.2313, -2.9793, 3.1786));
+    plane_pts_tmp.push_back(
+            Eigen::Vector3d(0.3451, 0.4708, 1.1789));
+
     //TODO unit test
     Eigen::Matrix<Sophus::SE3Group<double>::Scalar, 4, 4> M_15;
     M_15 << 0.998316, 0.0377052, 0.0440835, 0.000936562,
@@ -354,7 +374,7 @@ void dso::IOWrap::RegistrationOutputWrapper::checkFunctionOutput() {
             -0.045991, 0.0513149, 0.997623, -0.00978344,
             0, 0, 0, 1;
     std::vector<Eigen::Vector3d> wpts_15;
-    this->computeWPtsInCamFrame(this->plane_pts_, &wpts_15, M_15.inverse());
+    this->computeWPtsInCamFrame(plane_pts_tmp, &wpts_15, M_15.inverse());
     std::cout << wpts_15[0] << "\n" << std::endl;
     std::cout << wpts_15[1] << "\n" << std::endl;
     std::cout << wpts_15[2] << "\n" << std::endl;
@@ -362,7 +382,7 @@ void dso::IOWrap::RegistrationOutputWrapper::checkFunctionOutput() {
 
     //TODO unit test
     std::cout << Eigen::Vector3d(0.4769, -0.7551, -0.4498) << std::endl;
-    std::cout << this->computeNormalToPlane(this->plane_pts_) << std::endl;
+    std::cout << this->computeNormalToPlane(plane_pts_tmp) << std::endl;
     std::cout << "\n" << std::endl;
 
     //TODO unit test
@@ -398,7 +418,7 @@ void dso::IOWrap::RegistrationOutputWrapper::checkFunctionOutput() {
 
 Eigen::Vector3d dso::IOWrap::RegistrationOutputWrapper::computeNormalToPlane(
         const std::vector<Eigen::Vector3d> points) {
-    assert(points.size() == 3);
+    assert(points.size() == PLANE_POINTS);
     Eigen::Vector3d tmp_v1 = points[1] - points[0];
     Eigen::Vector3d tmp_v2 = points[0] - points[2];
     Eigen::Vector3d v = tmp_v1.cross(tmp_v2);
@@ -425,6 +445,7 @@ void dso::IOWrap::RegistrationOutputWrapper::computeImgPts(
     }
 
     assert(output->size() == input.size());
+    assert(output->size() == ROI_POINTS);
 }
 
 void dso::IOWrap::RegistrationOutputWrapper::computeWPtsInCamFrame(

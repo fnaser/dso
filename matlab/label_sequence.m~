@@ -8,20 +8,13 @@ close all, clear all, clc;
 % 4) select 4 points for the ROI
 % 5) export points to txt for seq
 
-% P1 = ;
-% P2 = ;
-% P3 = ;
-% roi1 = ;
-% roi2 = ;
-% roi3 = ;
-% roi4 = ;
-
 %% Load data
 
+% root = './';
 root = '/home/fnaser/DropboxMIT/Holodeck/ShadowCam_DataSet_Oct2018/sequence_m_1/';
 
 pts = csvread([root 'point_cloud.csv']);
-pc = pointCloud(pts);
+pc = pointCloud(pts');
 
 %% tum seq 28
 P1 = [-1.5977 -2.8942 4.7679];
@@ -38,20 +31,7 @@ roi3 = [2.6014 0.7844 0.4345];
 roi4 = [3.2091 0.7728 0.4087];
 roi1 = [3.3199 0.6802 1.1222];
 
-%% drl seq m 1
-P1 = [0.5799 0.4434 0.7751];
-P2 = [-1.6867 1.2422 1.5390];
-P3 = [-3.3954 1.8381 1.0850];
-
-% roi1 = [1.2388 0.2107 0.4722];
-% roi2 = [1.5242 0.1131 0.8710];
-% roi3 = [1.1484 0.2466 1.1726];
-% roi4 = [0.6743 0.4103 0.7747];
-
-roi1 = [-6.7832 2.9070 3.3127];
-roi2 = [-7.2427 3.1954 2.6090];
-roi3 = [-6.4901 2.9292 2.2057];
-roi4 = [-6.1085 2.7998 2.9040];
+%% 
 
 %% plotting
 
@@ -80,7 +60,7 @@ plot3(roi4(1), roi4(2), roi4(3), 'gx','LineWidth', lw)
 xlabel("X")
 ylabel("Y")
 zlabel("Z")
-axis([-15 15 -15 15 -15 15])
+axis([-5 5 -5 5 -5 5])
 hold off;
 
 %% Functions
@@ -89,7 +69,7 @@ function [X,Y,Z] = getPlane(P1, P2, P3)
 v = cross(P1-P2, P1-P3);
 vn = v/norm(v);
 w = null(vn);
-[P,Q] = meshgrid(-15:0.1:15);
+[P,Q] = meshgrid(-5:0.1:5);
 X = P1(1)+w(1,1)*P+w(1,2)*Q;
 Y = P1(2)+w(2,1)*P+w(2,2)*Q;
 Z = P1(3)+w(3,1)*P+w(3,2)*Q;
