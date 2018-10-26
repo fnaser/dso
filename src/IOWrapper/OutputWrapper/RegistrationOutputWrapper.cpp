@@ -223,7 +223,9 @@ void dso::IOWrap::RegistrationOutputWrapper::constructSequence() {
         }
 
         if (!nogui_ && valid_seq) {
-            cv::imshow("Image Window Test [homography] [cropped]", tmp_img_cropped); //TODO param and add to pangolin
+            cv::Mat tmp_img_cropped_larger;
+            cv::resize(tmp_img_cropped, tmp_img_cropped_larger, cv::Size(), 3, 3);
+            cv::imshow("Image Window Test [homography] [cropped]", tmp_img_cropped_larger); //TODO param and add to pangolin
             this->drawFilledCircle(tmp_img, img_pts);
             cv::imshow("Image Window Test [homography]", tmp_img); //TODO param and add to pangolin
             cv::waitKey(250); //TODO param
