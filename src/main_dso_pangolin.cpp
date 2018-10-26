@@ -230,7 +230,7 @@ void parseArgument(char* arg)
         if(option==1)
         {
             rect = true;
-            printf("rectification on!\n");
+            printf("RECTIFICATION ON!\n");
         }
         return;
     }

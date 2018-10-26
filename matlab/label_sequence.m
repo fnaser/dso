@@ -18,7 +18,7 @@ close all, clear all, clc;
 
 %% Load data
 
-root = '/home/fnaser/DropboxMIT/Holodeck/ShadowCam_DataSet_Oct2018/sequence_nom_1/';
+root = '/home/fnaser/DropboxMIT/Holodeck/ShadowCam_DataSet_Oct2018/sequence_m_2/';
 
 pts = csvread([root 'point_cloud.csv']);
 pc = pointCloud(pts);

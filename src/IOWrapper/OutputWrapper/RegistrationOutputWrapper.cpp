@@ -36,7 +36,7 @@ dso::IOWrap::RegistrationOutputWrapper::RegistrationOutputWrapper(int w, int h,
 
     // Buttons
     this->nogui_ = nogui;
-    this->store_imgs_ = true; //TODO param
+    this->store_imgs_ = false; //TODO param
     this->store_pc_ = false; //TODO param
     this->rectification_on_ = rect;
 
@@ -318,9 +318,8 @@ void dso::IOWrap::RegistrationOutputWrapper::labelsToFile() {
 }
 
 void dso::IOWrap::RegistrationOutputWrapper::storeImgs(std::map<int, cv::Mat> imgs) {
-    //TODO png to param
     std::vector<int> compression_params;
-    compression_params.push_back(CV_IMWRITE_PNG_COMPRESSION);
+    compression_params.push_back(CV_IMWRITE_PNG_COMPRESSION); //TODO png to param
     compression_params.push_back(9);
 
     for (std::map<int, cv::Mat>::iterator it = imgs.begin();
@@ -471,14 +470,6 @@ void dso::IOWrap::RegistrationOutputWrapper::computeH(
         const Eigen::Matrix<Sophus::SE3Group<double>::Scalar, 3, 3> K,
         std::vector<Eigen::Matrix<Sophus::SE3Group<double>::Scalar, 3, 3>>* Hs) {
 
-//    std::cout << "\n"
-//              << M_c1
-//              << "\n"
-//              << M_c2
-//              << "\n"
-//              << K
-//              << "\n" << std::endl;
-
     std::vector<Eigen::Vector3d> wpts_c1;
     this->computeWPtsInCamFrame(this->plane_pts_, &wpts_c1, M_c1);
     Eigen::Vector3d vn_c1 = this->computeNormalToPlane(wpts_c1);
@@ -489,11 +480,4 @@ void dso::IOWrap::RegistrationOutputWrapper::computeH(
     Hp = K * He * K.inverse();
     Hs->push_back(He);
     Hs->push_back(Hp);
-
-//    std::cout << "\n"
-//              << Hs->at(0)
-//              << "\n"
-//              << Hs->at(1)
-//              << "\n"
-//              << std::endl;
 }
